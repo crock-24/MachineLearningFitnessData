@@ -1,0 +1,111 @@
+---
+title: "ML Project"
+author: "Cody"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ML Project
+
+Predicting good exercise habits with accelerometer indicators
+
+```{r message=FALSE, echo=FALSE}
+#Libraries used for project
+library(caret)
+library(dplyr)
+library(ggplot2)
+set.seed(1111)
+
+#Links provided for data in assignment description
+linkTrain <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv'
+linkTest <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv'
+
+#download files to local device from links provided
+linkTrain1 <- download.file(url = linkTrain, destfile = "linkTrain.csv", method = "curl")
+linkTest1 <- download.file(url = linkTest, destfile = "linkTest.csv", method = "curl")
+
+#read in the downloaded data to R session
+trainData <- read.csv('linkTrain.csv')
+testData <- read.csv('linkTest.csv')
+
+#turn training data character into numeric factors, have to turn rest of classe sets into factors too
+trainData <- transform(trainData, classe = as.numeric(as.factor(trainData$classe)))
+
+#exploratory plot to make sure we have sufficient data for every classe type
+hist(trainData$classe)
+```
+
+## Feature Plot
+
+range of motion vs exercise quality
+
+```{r, echo=FALSE}
+#get rid of the near zero variablity factors
+trainData <- trainData[-nearZeroVar(trainData)]
+testData <- testData[-nearZeroVar(testData)]
+
+#grabbing only the numeric columns so we can do pca, can only do pca on numeric matricies to allow inversion
+trainData <- select_if(trainData, is.numeric)
+testData <- select_if(testData, is.numeric)
+
+#omitting Na's so we can build a model from the data
+trainData <- na.omit(trainData)
+testData <- na.omit(testData)
+
+#difference between max and min for range of motion here --
+trainData$yawROMarm <- (trainData$max_yaw_arm - trainData$min_yaw_arm)
+trainData$pitchROMbelt <- (trainData$max_picth_belt - trainData$min_pitch_belt)
+trainData$pitchROMdumbell <- (trainData$max_picth_dumbbell - trainData$min_pitch_dumbbell)
+trainData$pitchROMforearm <- (trainData$max_picth_forearm - trainData$min_pitch_forearm)
+
+#exploratory plot to see how max pitch interacts with the quality of movement
+featurePlot(x = trainData[,c("yawROMarm","pitchROMbelt", "pitchROMdumbell", "pitchROMforearm")], y = trainData$classe, plot = "pairs")
+
+#training set should have the same columns as the test set in order
+# to train with ML using caret library
+common_column_names <- intersect(colnames(trainData) , colnames(testData))
+common_column_names <- append(common_column_names, 'classe')
+trainData <- trainData %>% select(all_of(common_column_names))
+
+```
+
+## Training algorithm
+
+```{r, echo=FALSE}
+#pca analysis to show which columns are highly correlated
+M <- abs(cor(trainData[,-99]))
+diag (M) <- 0 
+which(M > 0.9, arr.ind=T)
+```
+
+## The predicitions vs the actual values, a clear linear relationship is shown
+
+```{r, echo=FALSE}
+#Fitting the ML model
+modelFit <- train(classe ~ ., method="glm", preProcess="pca", data = trainData)
+
+#create predictions
+predTrain <- round(predict(modelFit, subset(trainData, select = -c(classe))))
+pred <- round(predict(modelFit, testData))
+
+#limit predictions to the factors that actually show up in dataset 
+predTrain[predTrain>5] <- 5
+predTrain[predTrain<1] <- 1
+
+pred[pred>5] <- 5
+pred[pred<1] <- 1
+
+#plotting the predictions vs the actual to see if there is a linear relationship
+plot(predTrain, trainData$classe)
+```
+## Confusion matrix from the training dataset
+
+```{r, echo=FALSE}
+#comparing against actual values
+confusionMatrix(as.factor(trainData$classe), as.factor(predTrain))
+```
+
