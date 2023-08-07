@@ -11,7 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## ML Project
 
-Predicting good exercise habits with accelerometer indicators
+Goal: predict good exercise habits with accelerometer indicators
+
+First question: does each quality level of the exercise have enough data around it?
 
 ```{r message=FALSE, echo=FALSE}
 #Libraries used for project
@@ -38,10 +40,11 @@ trainData <- transform(trainData, classe = as.numeric(as.factor(trainData$classe
 #exploratory plot to make sure we have sufficient data for every classe type
 hist(trainData$classe)
 ```
+Each quality level does appear to have enough data
 
 ## Feature Plot
 
-range of motion vs exercise quality
+Looking for some kind of relationship between the range of motion and exercise quality
 
 ```{r, echo=FALSE}
 #get rid of the near zero variablity factors
@@ -75,14 +78,19 @@ trainData <- trainData %>% select(all_of(common_column_names))
 
 ## Training algorithm
 
+Finding variables in our data set that have a correlation > 0.9 with another variable
+
 ```{r, echo=FALSE}
 #pca analysis to show which columns are highly correlated
 M <- abs(cor(trainData[,-99]))
 diag (M) <- 0 
 which(M > 0.9, arr.ind=T)
 ```
+We should use Principal Component Analysis to process this data because there are a lot of very strong relationships
 
 ## The predicitions vs the actual values, a clear linear relationship is shown
+
+Plotting how well our prediction algorithm did in the training data set
 
 ```{r, echo=FALSE}
 #Fitting the ML model
@@ -102,7 +110,10 @@ pred[pred<1] <- 1
 #plotting the predictions vs the actual to see if there is a linear relationship
 plot(predTrain, trainData$classe)
 ```
+
 ## Confusion matrix from the training dataset
+
+Printing the actual confusion matrix information from our training data set
 
 ```{r, echo=FALSE}
 #comparing against actual values
