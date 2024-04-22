@@ -1,4 +1,4 @@
-#Machine Learning Anaylsis of Accelerometer Data
+# Machine Learning Anaylsis of Accelerometer Data
 
 The goal of this anaylsis is to determine if certain accelerometer sensor data can be used to determine quality exercise movements. 
 
